@@ -1,6 +1,5 @@
 import os
 import logging
-from typing import Optional
 
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
@@ -52,9 +51,6 @@ class CreateTableInput(BaseModel):
 # -------- Tools --------
 @mcp.tool
 def adx_query(input: QueryInput) -> str:
-    """
-    Run a KQL query and return a compact text table.
-    """
     client = make_client()
     try:
         r = client.execute(DATABASE, input.kql)
@@ -70,11 +66,6 @@ def adx_query(input: QueryInput) -> str:
 
 @mcp.tool
 def adx_ingest_inline(input: IngestInlineInput) -> str:
-    """
-    Ingest small test data directly using a control command.
-    For CSV, provide rows without header, e.g.:
-    '2025-09-04T10:00:00Z,INFO,Hello,AuthService,vm01,user1'
-    """
     cmd = (
         f".ingest inline into table {input.table} <|\n{input.payload}"
         if input.data_format.lower() == "csv"
@@ -89,10 +80,6 @@ def adx_ingest_inline(input: IngestInlineInput) -> str:
 
 @mcp.tool
 def adx_create_table(input: CreateTableInput) -> str:
-    """
-    Create a table using Kusto column syntax.
-    Example: schema_kql='Timestamp:datetime, Level:string, Message:string, Service:string, Host:string, UserId:string'
-    """
     cmd = f".create table {input.table} ({input.schema_kql})"
     client = make_client()
     try:
@@ -102,5 +89,4 @@ def adx_create_table(input: CreateTableInput) -> str:
         return f"Create failed: {str(e)}"
 
 if __name__ == "__main__":
-    # stdio transport; avoid print() to stdout
     mcp.run(transport="stdio")
