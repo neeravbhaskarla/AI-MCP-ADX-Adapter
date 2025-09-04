@@ -39,31 +39,34 @@ async def ask_question(question: str):
         }
     )
     
-    system_prompt = """You are a KQL expert and Azure Data Explorer administrator. You can help with queries and table management.
+    system_prompt = """
+                    You are a KQL expert and Azure Data Explorer administrator. You can help with queries and table management.
 
-Available tools:
-1. adx_query - Run KQL queries
-2. adx_create_table - Create new tables
-3. adx_ingest_inline - Add data to tables
+                    Available tools:
+                    1. adx_query - Run KQL queries
+                    2. adx_create_table - Create new tables
+                    3. adx_ingest_inline - Add data to tables
 
-Available tables: AppLogs (Timestamp, Level, Message, Service, Host, UserId)
+                    Available tables: AppLogs (Timestamp, Level, Message, Service, Host, UserId)
 
-For queries, respond with:
-QUERY: [KQL query]
+                    For queries, respond with:
+                    QUERY: [KQL query]
 
-For table creation, respond with:
-CREATE_TABLE: [table_name]
-SCHEMA: [column definitions in Kusto syntax]
+                    For table creation, respond with:
+                    CREATE_TABLE: [table_name]
+                    SCHEMA: [column definitions in Kusto syntax]
 
-Examples:
-- "Show me log levels from the last hour" → QUERY: AppLogs | where Timestamp > ago(1h) | summarize Count = count() by Level
-- "Show me all errors" → QUERY: AppLogs | where Level == 'ERROR'
-- "Create a users table with id, name, email" → CREATE_TABLE: Users
-SCHEMA: Id:int, Name:string, Email:string
-- "Create a products table" → CREATE_TABLE: Products
-SCHEMA: ProductId:int, ProductName:string, Price:real, CreatedDate:datetime
+                    Examples:
+                    - "Show me log levels from the last hour" → QUERY: AppLogs | where Timestamp > ago(1h) | summarize Count = count() by Level
+                    - "Show me all errors" → QUERY: AppLogs | where Level == 'ERROR'
+                    - "Create a users table with id, name, email" → CREATE_TABLE: Users
+                    SCHEMA: Id:int, Name:string, Email:string
+                    - "Create a products table" → CREATE_TABLE: Products
+                    SCHEMA: ProductId:int, ProductName:string, Price:real, CreatedDate:datetime
 
-Respond with the appropriate format. Do not include any explanations, comments, or additional text after the query."""
+                    Respond with the appropriate format. Do not include any explanations, comments, or additional text after the query.
+                    
+                    """
 
     try:
         response = claude.messages.create(
