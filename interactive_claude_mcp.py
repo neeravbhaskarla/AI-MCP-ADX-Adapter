@@ -3,8 +3,8 @@ import asyncio
 import anthropic
 import os
 from dotenv import load_dotenv
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,17 +34,9 @@ async def ask_question(question: str):
         print("❌ Error: AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID must be set in .env file")
         return
 
-    server_params = StdioServerParameters(
-        command="python3",
-        args=["mcp-server/adx_server.py"],
-        env={
-            "ADX_CLUSTER_URI": adx_cluster,
-            "ADX_DATABASE": adx_database, 
-            "AZURE_TENANT_ID": azure_tenant,
-            "AZURE_CLIENT_ID": azure_client_id,
-            "AZURE_CLIENT_SECRET": azure_client_secret
-        }
-    )
+    # Connect to a running MCP server over Streamable HTTP (preferred).
+    mcp_host = os.getenv("MCP_HOST", "127.0.0.1")
+    mcp_port = int(os.getenv("MCP_PORT", "8765"))
     
     system_prompt = """
                     You are a KQL expert and Azure Data Explorer administrator. You can help with queries and table management.
@@ -77,23 +69,26 @@ async def ask_question(question: str):
         claude_response = response.content[0].text.strip()
         print(f"🤖 Claude's analysis: {claude_response}")
         
-        async with stdio_client(server_params) as (read, write):
+        # Connect to the MCP server over Streamable HTTP
+        mcp_path = os.getenv("MCP_PATH", "/mcp")
+        base_url = f"http://{mcp_host}:{mcp_port}{mcp_path}"
+        async with streamablehttp_client(base_url) as (read, write, get_session_id):
             async with ClientSession(read, write) as session:
                 await session.initialize()
-                
+
                 # Parse Claude's response
                 if "QUERY:" in claude_response:
                     kql_query = claude_response.split("QUERY:")[1].strip().split("\n")[0].strip()
                     print(f"🔍 Executing query: {kql_query}")
-                    
+
                     result = await session.call_tool("adx_query", {"input": {"kql": kql_query}})
-                    
+
                     print(f"📊 Query Results:")
                     for content in result.content:
                         print(f"  {content.text}")
-                
                 else:
                     print("❌ Claude didn't provide a valid command format")
+    # streamablehttp_client handles connection termination for us
                 
     except Exception as e:
         print(f"❌ Error: {e}")

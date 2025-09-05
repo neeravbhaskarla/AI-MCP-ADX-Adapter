@@ -1,7 +1,6 @@
 import os
 import logging
 import sys
-from typing import Optional
 from dotenv import load_dotenv
 
 from fastmcp import FastMCP
@@ -54,7 +53,6 @@ def adx_query(input: QueryInput) -> str:
     try:
         r = client.execute(DATABASE, input.kql)
         primary = r.primary_results[0]
-        # Build a tiny plain-text table for portability
         cols = [c.column_name for c in primary.columns]
         lines = [" | ".join(cols)]
         for row in primary.rows:
@@ -64,11 +62,29 @@ def adx_query(input: QueryInput) -> str:
         return f"ADX error: {str(e)}"
 
 if __name__ == "__main__":
-    # Suppress FastMCP banner by redirecting stderr temporarily
+    # Run as a TCP MCP server on localhost. Use env MCP_HOST/MCP_PORT to override.
+    host = os.getenv("MCP_HOST", "127.0.0.1")
+    port = int(os.getenv("MCP_PORT", "8765"))
+
+    print(f"Starting MCP TCP server on {host}:{port} (FastMCP) ...")
+
+    # Suppress FastMCP banner by redirecting stderr temporarily, but keep a handle
     original_stderr = sys.stderr
-    sys.stderr = open(os.devnull, 'w')
+    suppressed_stderr = open(os.devnull, 'w')
+    sys.stderr = suppressed_stderr
     try:
-        mcp.run(transport="stdio")
+        try:
+            # Disable uvicorn access log and lower overall server verbosity via uvicorn_config
+            uvicorn_cfg = {"access_log": False, "log_level": "critical"}
+            mcp.run(transport="streamable-http", host=host, port=port, uvicorn_config=uvicorn_cfg)
+        except Exception as exc:
+            sys.stderr = original_stderr
+            suppressed_stderr.close()
+            print(f"ERROR: MCP server failed to start: {exc}", file=original_stderr)
+            raise
     finally:
-        sys.stderr.close()
+        try:
+            suppressed_stderr.close()
+        except Exception:
+            pass
         sys.stderr = original_stderr
