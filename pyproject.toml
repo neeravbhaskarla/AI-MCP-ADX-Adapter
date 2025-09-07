@@ -1,0 +1,17 @@
+[project]
+name = "projectone"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "azure-kusto-data>=5.0.5",
+    "black>=25.1.0",
+    "langchain>=0.3.27",
+    "langchain-mcp-adapters>=0.1.9",
+    "langchain-openai>=0.3.32",
+    "langgraph>=0.6.6",
+    "mcp>=1.13.1",
+    "pydantic>=2.11.7",
+    "python-dotenv>=1.1.1",
+]
